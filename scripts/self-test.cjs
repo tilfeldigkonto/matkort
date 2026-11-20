@@ -60,6 +60,30 @@ test('OCR laster worker og språkmodell fra appen selv',()=>{
   assert.equal(source.includes("workerBlobURL: false"),true);
   assert.equal(config.includes('tessdata.projectnaptha.com')||config.includes('0.0.0.0'),false);
 });
+test('OCR: to kolonner og g lest som 9',()=>{
+  const text=`100 grammaan Cheerios Multigrain
+NÄRINGSDEKLARATION/ | Per 100 9 Per 30 9
+NÆRINGSINDHOLD/ Cheerios Cheerios
+RAVINTOARVOILMOITUS | Multigrain | Multigrair
+Energi/Energia å 1626kJ * 488kJ
+385 kcal 116 kcal
+499 159
+09g 03g
+| 7069 729
+17,79 539
+94g' 289
+1009 30g
+0819 024g
+innehåller 20 portioner. Portionerna ska`;
+  const result=ocr.extractNutrition(text);
+  assert.equal(result.baseUnit,'g');
+  assert.equal(result.values.kcal,385);
+  assert.equal(result.values.fat,4.9);
+  assert.equal(result.values.carbs,70.6);
+  assert.equal(result.values.fiber,9.4);
+  assert.equal(result.values.protein,10);
+  assert.equal(result.values.salt,0.81);
+});
 test('OCR: per 100 ml og kJ-fallback',()=>{
   const result=ocr.extractNutrition('Næringsinnhold per 100 ml\nEnergi 197 kJ\nProtein 3,5 g');
   assert.equal(result.baseUnit,'ml');
