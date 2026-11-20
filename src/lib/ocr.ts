@@ -63,9 +63,13 @@ function per100FromTokens(tokens: string[], portion: number | undefined, kind: A
 }
 
 function portionGrams(text: string): number | undefined {
-  const amounts = [...text.toLowerCase().matchAll(/\bper\s*(\d+(?:[.,]\d+)?)\s*(?:g|9)\b/g)]
-    .map(match => Number(match[1].replace(',', '.')))
-    .filter(amount => amount > 0 && amount !== 100);
+  const amounts: number[] = [];
+  for (const match of text.toLowerCase().matchAll(/per\s*(\d{2,4})/g)) {
+    let amount = Number(match[1]);
+    // «1009» er «100 g» der g ble lest som 9.
+    if (amount > 100 && String(amount).endsWith('9')) amount = Number(String(amount).slice(0, -1));
+    if (amount > 0 && amount !== 100 && amount < 500) amounts.push(amount);
+  }
   return amounts[0];
 }
 
@@ -75,7 +79,9 @@ function kcalFromLine(line: string, portion: number | undefined): number | undef
     .filter(value => Number.isFinite(value));
   const choose = (values: number[]) => {
     if (!values.length) return undefined;
-    if (values.length === 1 || portion === undefined) return values[0];
+    // Ett tall ved siden av en mindre porsjonskolonne er ofte porsjonen, ikke per 100 g.
+    if (values.length === 1) return portion !== undefined && portion < 100 ? undefined : values[0];
+    if (portion === undefined) return values[0];
     return portion < 100 ? Math.max(...values) : Math.min(...values);
   };
   const kcal = choose(read('kcal'));
@@ -125,7 +131,7 @@ export function extractNutrition(rawText: string): ExtractedNutrition {
   const portion = portionGrams(whole);
   let baseUnit: BaseUnit | undefined;
   if (/100\s*ml\b/.test(whole)) baseUnit = 'ml';
-  else if (/100\s*(?:g|gram)\b|per\s*100\s*9\b/.test(whole)) baseUnit = 'g';
+  else if (/100\s*(?:g|gram)\b|per\s*100\s*9\b|per\s*1009\b/.test(whole)) baseUnit = 'g';
 
   const kcalLine = lines.find(line => /kcal/i.test(line)) ?? lines.find(line => /\d\s*kj\b|energi|energy|energia/i.test(line));
   if (kcalLine) {
@@ -160,7 +166,7 @@ function ocrAsset(path: string): string {
 }
 
 export async function recognizeLabel(image: File, onProgress: (text: string, fraction?: number) => void): Promise<ExtractedNutrition> {
-  const { createWorker } = await import('tesseract.js');
+  const { createWorker, PSM } = await import('tesseract.js');
   let worker: Awaited<ReturnType<typeof createWorker>> | undefined;
   try {
     onProgress('Laster tekstgjenkjenning …');
@@ -175,6 +181,8 @@ export async function recognizeLabel(image: File, onProgress: (text: string, fra
         else if (message.status === 'loading language traineddata') onProgress('Laster norsk språkmodell …', message.progress);
       }
     });
+    // Hele tabellen som én blokk, så 100 g-kolonnen ikke faller bort.
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK });
     const { data } = await worker.recognize(image);
     return extractNutrition(data.text);
   } finally {

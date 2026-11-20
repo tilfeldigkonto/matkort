@@ -84,6 +84,15 @@ innehåller 20 portioner. Portionerna ska`;
   assert.equal(result.values.protein,10);
   assert.equal(result.values.salt,0.81);
 });
+test('OCR: bare porsjons-kcal brukes ikke som per 100 g',()=>{
+  const text=`NÅRINGSDEKLARATION/ | Per 1009 | Per30g
+KLE 116 kcal
+| Å 949 289
+på 10; 309`;
+  const result=ocr.extractNutrition(text);
+  assert.equal(result.baseUnit,'g');
+  assert.equal(result.values.kcal,undefined);
+});
 test('OCR: per 100 ml og kJ-fallback',()=>{
   const result=ocr.extractNutrition('Næringsinnhold per 100 ml\nEnergi 197 kJ\nProtein 3,5 g');
   assert.equal(result.baseUnit,'ml');
