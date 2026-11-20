@@ -11,6 +11,7 @@ import { availableUnits, formatNumber, ingredientNutrition, multiplyNutrition, p
 import { extractNutrition, recognizeLabel } from './lib/ocr';
 import { loadData, makeBackup, removeProduct, removeRecipe, restoreBackup, saveProduct, saveRecipe, validateBackup, wipeData } from './lib/db';
 import NutritionGrid from './components/NutritionGrid';
+import { version } from '../package.json';
 
 type View = 'recipes' | 'products' | 'settings';
 type Metric = keyof Nutrition;
@@ -301,7 +302,7 @@ function App() {
 
   return <div className="app-shell">
     <div className="page-layout">
-      <header className="topbar"><button className="brand" onClick={()=>switchTab('recipes')} aria-label="Matkort: gå til retter"><span className="brand-icon"><Leaf size={21}/></span><span>matkort<span className="brand-dot">.</span></span></button><span className="header-label"><span className="status-dot"/>Privat næringskalkulator</span></header>
+      <header className="topbar"><button className="brand" onClick={()=>switchTab('recipes')} aria-label="Matkort: gå til retter"><span className="brand-icon"><Leaf size={21}/></span><span>matkort<span className="brand-dot">.</span></span></button><span className="header-side"><span className="header-label"><span className="status-dot"/>Privat næringskalkulator</span><span className="app-version">v{version}</span></span></header>
       <div className="desktop-layout"><aside className="sidebar"><div className="sidebar-heading">MIN OVERSIKT</div>
         <button className={'nav-item '+(tab==='recipes'?'active':'')} onClick={()=>switchTab('recipes')}><BookOpenText size={20}/> Retter <span>{recipes.length}</span></button>
         <button className={'nav-item '+(tab==='products'?'active':'')} onClick={()=>switchTab('products')}><ShoppingBasket size={20}/> Produkter <span>{products.length}</span></button>
@@ -317,8 +318,8 @@ function App() {
           {!productEditor && !recipeEditor && tab==='recipes' && (selectedRecipe ?
             <RecipeDetails recipe={selectedRecipe} products={products} onBack={()=>setSelectedRecipeId(null)} onEdit={()=>startRecipe(selectedRecipe)} onDelete={()=>deleteRecipe(selectedRecipe)} onDuplicate={()=>duplicateRecipe(selectedRecipe)}/>
           : <>
-            <SectionHeader eyebrow="MATEN DIN, PÅ DIN MÅTE" title="Mine retter" description="Sett sammen ingredienser og få full oversikt over næringsinnholdet." action={<Button onClick={()=>products.length?startRecipe():startProduct()}><Plus size={18}/> Ny rett</Button>}/>
-            <div className="overview-cards"><div><span>Lagrede retter</span><strong>{recipes.length}</strong></div><div><span>Produkter</span><strong>{products.length}</strong></div><div className="overview-highlight"><span>Din mat. Dine tall.</span><Leaf size={24}/></div></div>
+            <SectionHeader eyebrow="OVERSIKT" title="Mine retter" description="Sett sammen ingredienser og få full oversikt over næringsinnholdet." action={<Button onClick={()=>products.length?startRecipe():startProduct()}><Plus size={18}/> Ny rett</Button>}/>
+            <div className="overview-cards"><div><span>Lagrede retter</span><strong>{recipes.length}</strong></div><div><span>Produkter</span><strong>{products.length}</strong></div><div className="overview-highlight"><span>Lagret på enheten</span><Leaf size={24}/></div></div>
             {recipes.length ? <><div className="search-field"><Search size={18}/><input aria-label="Søk etter retter" placeholder="Søk i retter …" value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="recipe-list">{filteredRecipes.map(r=>{
               const {total,missing}=recipeNutrition(r,products);
               return <button key={r.id} className="recipe-item" onClick={()=>{setSelectedRecipeId(r.id);window.scrollTo({top:0,behavior:'smooth'});}}><span className="recipe-item-icon"><BookOpenText size={22}/></span><span className="recipe-item-main"><strong>{r.name}</strong><small>{r.ingredients.length} ingredienser <span>·</span> {r.portions} porsjoner{missing>0?' · Ufullstendig':''}</small></span><span className="recipe-item-kcal"><strong>{formatNumber(total.kcal,0)}</strong><small>kcal totalt</small></span><ChevronRight size={20} className="recipe-chevron"/></button>;
